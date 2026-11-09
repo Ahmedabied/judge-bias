@@ -103,7 +103,7 @@ Replies are parsed strictly. The letter has to lead the reply ("A", "B.", "Answe
 
 ```sh
 pip install -e '.[test,public]'
-pytest -q              # 33 tests, about 3 s
+pytest -q              # 32 tests, about 3 s
 ```
 
 Tests use scripted models: a self-biased judge is found, a coin-flip judge is not blamed, a first-slot judge

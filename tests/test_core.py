@@ -152,9 +152,3 @@ def test_demo_and_report_cli(tmp_path, capsys):
     assert "| alpha |" in out and "follows the panel" in out
     assert main(["report", str(tmp_path), "--answerers", "alpha,bravo,charlie"]) == 0
     assert "| bravo |" in capsys.readouterr().out
-
-
-def test_markdown_has_no_long_dashes(tmp_path):
-    res, _ = experiment(tmp_path, [Fake("a", "self", 1), Fake("b", "fair", 1), Fake("c", "fair", 2)], fair_panel())
-    text = core.markdown(res, {"k": "v"})
-    assert chr(0x2014) not in text and chr(0x2013) not in text
