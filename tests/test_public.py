@@ -75,5 +75,6 @@ def test_a_fair_judge_is_not_blamed_for_a_noisy_panel():
     s = analyse(rows, models, judges, rounds=300)["self_preference"]["gpt-4"]
     assert abs(s["raw"]) < 0.05
     assert 0.8 < s["follows_panel"] < 1.2, s
+    assert 0.3 < s["panel_reliability"] < 0.9, s  # one to four noisy verdicts per comparison
     assert abs(s["adjusted"]) < 0.05, s
     assert s["adjusted_ci95"][0] < 0 < s["adjusted_ci95"][1], s

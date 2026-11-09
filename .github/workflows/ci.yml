@@ -23,7 +23,7 @@ jobs:
       - name: published judgments reproduce the README number
         run: |
           judge-bias public --out /tmp/pub | tee /tmp/pub.txt
-          grep -q "| gpt-4 | 578 | 0.852 | 0.733 | +0.119 | +0.083 to +0.154 | 1.104 | +0.095 | +0.049 to +0.139 |" /tmp/pub.txt
+          grep -q "| gpt-4 | 578 | 0.852 | 0.733 | +0.119 | +0.083 to +0.154 | 1.104 | +0.095 | +0.049 to +0.139 | 0.651 |" /tmp/pub.txt
       - name: the README's slices reproduce too
         run: |
           judge-bias public --out /tmp/t1 --turn 1 | grep -q "| gpt-4 | 290 | 0.833 | 0.733 | +0.100 | +0.045 to +0.151 | 1.142 | +0.067 | -0.000 to +0.130 |"

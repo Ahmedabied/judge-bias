@@ -149,6 +149,6 @@ def test_ollama_request_is_greedy_and_seeded(monkeypatch):
 def test_demo_and_report_cli(tmp_path, capsys):
     assert main(["demo", "--out", str(tmp_path)]) == 0
     out = capsys.readouterr().out
-    assert "| alpha |" in out and "follows the panel" in out
+    assert "| alpha |" in out and "follows the panel" in out and "panel reliability" in out
     assert main(["report", str(tmp_path), "--answerers", "alpha,bravo,charlie"]) == 0
     assert "| bravo |" in capsys.readouterr().out

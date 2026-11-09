@@ -5,9 +5,9 @@
 
 ## Self-preference
 
-| model | comparisons | picks itself | panel picks it | raw | 95% interval | follows the panel (k) | adjusted | 95% interval |
-|---|---|---|---|---|---|---|---|---|
-| gpt-4 | 578 | 0.852 | 0.733 | +0.119 | +0.083 to +0.154 | 1.104 | +0.095 | +0.049 to +0.139 |
+| model | comparisons | picks itself | panel picks it | raw | 95% interval | follows the panel (k) | adjusted | 95% interval | panel reliability |
+|---|---|---|---|---|---|---|---|---|---|
+| gpt-4 | 578 | 0.852 | 0.733 | +0.119 | +0.083 to +0.154 | 1.104 | +0.095 | +0.049 to +0.139 | 0.651 |
 
 ## Judges
 

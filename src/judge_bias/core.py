@@ -297,12 +297,12 @@ def markdown(result: dict, meta: dict | None = None) -> str:
     if meta:
         lines += [f"- {k}: {v}" for k, v in meta.items()] + [""]
     lines += ["## Self-preference", "",
-              "| model | comparisons | picks itself | panel picks it | raw | 95% interval | follows the panel (k) | adjusted | 95% interval |",
-              "|---|---|---|---|---|---|---|---|---|"]
+              "| model | comparisons | picks itself | panel picks it | raw | 95% interval | follows the panel (k) | adjusted | 95% interval | panel reliability |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     for m, s in result["self_preference"].items():
         lines.append(f"| {m} | {s['comparisons']} | {_num(s['picks_itself'])} | {_num(s['reference_picks_it'])} | "
                      f"{_num(s['raw'], True)} | {_ci(s['raw_ci95'])} | {_num(s['follows_panel'])} | "
-                     f"{_num(s['adjusted'], True)} | {_ci(s['adjusted_ci95'])} |")
+                     f"{_num(s['adjusted'], True)} | {_ci(s['adjusted_ci95'])} | {_num(s.get('panel_reliability'))} |")
     lines += ["", "## Judges", "", "| judge | verdicts | unreadable | ties | picks the first slot | same winner in both orders |",
               "|---|---|---|---|---|---|"]
     for j, d in result["judges_detail"].items():
