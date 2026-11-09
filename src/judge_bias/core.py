@@ -138,12 +138,14 @@ def run(questions: list[Question], answerers: list[Model], judges: list[Model], 
 
 
 def _rates(rows: list[dict]) -> dict[tuple[str, str, str, str], float]:
-    """(judge, question, m, n) -> share of the judge's readable verdicts on that pair that picked m."""
+    """(judge, question, m, n) -> share of the judge's readable verdicts on that pair that picked m.
+    A tie (in imported judgments) counts half for each side."""
     acc: dict[tuple[str, str, str, str], list[float]] = {}
     for r in rows:
-        if r["winner"] is not None:
+        w = r["winner"]
+        if w is not None:
             m, n = r["pair"]
-            acc.setdefault((r["judge"], r["qid"], m, n), []).append(1.0 if r["winner"] == m else 0.0)
+            acc.setdefault((r["judge"], r["qid"], m, n), []).append(0.5 if w == "tie" else 1.0 if w == m else 0.0)
     return {k: sum(v) / len(v) for k, v in acc.items()}
 
 
@@ -177,14 +179,17 @@ def analyse(rows: list[dict], answerers: list[str], judges: list[str], rounds: i
     for j in judges:
         mine = [r for r in rows if r["judge"] == j]
         valid = [r for r in mine if r["winner"] is not None]
+        lettered = [r for r in valid if r.get("verdict") in ("A", "B")]  # imported judgments have no slots
         both: dict[tuple, list[str]] = {}
-        for r in valid:
-            both.setdefault((r["qid"], tuple(r["pair"])), []).append(r["winner"])
+        for r in lettered:
+            if r.get("order") is not None:
+                both.setdefault((r["qid"], tuple(r["pair"])), []).append(r["winner"])
         two = [w for w in both.values() if len(w) == 2]
         result["judges_detail"][j] = {
             "verdicts": len(mine),
             "unreadable": len(mine) - len(valid),
-            "first_slot_rate": round(sum(1 for r in valid if r["verdict"] == "A") / len(valid), 4) if valid else None,
+            "ties": sum(1 for r in valid if r["winner"] == "tie"),
+            "first_slot_rate": round(sum(1 for r in lettered if r["verdict"] == "A") / len(lettered), 4) if lettered else None,
             "consistent_rate": round(sum(1 for w in two if w[0] == w[1]) / len(two), 4) if two else None,
         }
 
@@ -272,10 +277,11 @@ def markdown(result: dict, meta: dict | None = None) -> str:
         lines.append(f"| {m} | {s['comparisons']} | {_num(s['picks_itself'])} | {_num(s['reference_picks_it'])} | "
                      f"{_num(s['raw'], True)} | {_ci(s['raw_ci95'])} | {_num(s['follows_panel'])} | "
                      f"{_num(s['adjusted'], True)} | {_ci(s['adjusted_ci95'])} |")
-    lines += ["", "## Judges", "", "| judge | verdicts | unreadable | picks the first slot | same winner in both orders |",
-              "|---|---|---|---|---|"]
+    lines += ["", "## Judges", "", "| judge | verdicts | unreadable | ties | picks the first slot | same winner in both orders |",
+              "|---|---|---|---|---|---|"]
     for j, d in result["judges_detail"].items():
-        lines.append(f"| {j} | {d['verdicts']} | {d['unreadable']} | {_num(d['first_slot_rate'])} | {_num(d['consistent_rate'])} |")
+        lines.append(f"| {j} | {d['verdicts']} | {d['unreadable']} | {d['ties']} | {_num(d['first_slot_rate'])} | "
+                     f"{_num(d['consistent_rate'])} |")
     return "\n".join(lines) + "\n"
 
 

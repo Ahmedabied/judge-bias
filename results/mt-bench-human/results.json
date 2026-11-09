@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "data": "lmsys/mt_bench_human_judgments at f7d2896d2cc5 (CC-BY-4.0)",
+    "verdicts": "5755; both turns; ties count half; all human judges pooled as the panel"
+  },
+  "answerers": [
+    "alpaca-13b",
+    "claude-v1",
+    "gpt-3.5-turbo",
+    "gpt-4",
+    "llama-13b",
+    "vicuna-13b-v1.2"
+  ],
+  "judges": [
+    "gpt-4",
+    "humans"
+  ],
+  "panel": [
+    "humans"
+  ],
+  "judges_detail": {
+    "gpt-4": {
+      "verdicts": 2400,
+      "unreadable": 0,
+      "ties": 600,
+      "first_slot_rate": null,
+      "consistent_rate": null
+    },
+    "humans": {
+      "verdicts": 3355,
+      "unreadable": 0,
+      "ties": 780,
+      "first_slot_rate": null,
+      "consistent_rate": null
+    }
+  },
+  "self_preference": {
+    "gpt-4": {
+      "comparisons": 290,
+      "picks_itself": 0.8526,
+      "reference_picks_it": 0.7323,
+      "raw": 0.1203,
+      "raw_ci95": [
+        0.0845,
+        0.1553
+      ],
+      "follows_panel": 0.863,
+      "adjusted": 0.1521,
+      "adjusted_ci95": [
+        0.1159,
+        0.1879
+      ]
+    }
+  }
+}

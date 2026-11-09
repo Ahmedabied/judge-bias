@@ -55,6 +55,21 @@ def cmd_demo(a) -> int:
     return 0
 
 
+def cmd_public(a) -> int:
+    from . import public
+
+    rows, models, judges = public.load(a.data)
+    result = analyse(rows, models, judges)
+    meta = {"data": f"{public.DATASET} at {public.REVISION[:12]} (CC-BY-4.0)",
+            "verdicts": f"{len(rows)}; both turns; ties count half; all human judges pooled as the panel"}
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "results.json").write_text(json.dumps({"meta": meta, **result}, indent=2), encoding="utf-8")
+    (out / "results.md").write_text(markdown(result, meta), encoding="utf-8")
+    print(markdown(result, meta))
+    return 0
+
+
 def cmd_report(a) -> int:
     out = Path(a.out)
     rows = [json.loads(l) for l in (out / "verdicts.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -83,6 +98,10 @@ def main(argv=None) -> int:
     d = sub.add_parser("demo", help="run the whole analysis on scripted models, no download")
     d.add_argument("--out", default="results/demo")
     d.set_defaults(fn=cmd_demo)
+    pub = sub.add_parser("public", help="analyse the published MT-Bench human judgments (GPT-4 judge vs human experts)")
+    pub.add_argument("--data", default="data/mt_bench_human")
+    pub.add_argument("--out", default="results/mt-bench-human")
+    pub.set_defaults(fn=cmd_public)
     rep = sub.add_parser("report", help="re-analyse saved verdicts")
     rep.add_argument("out")
     rep.add_argument("--answerers", required=True)

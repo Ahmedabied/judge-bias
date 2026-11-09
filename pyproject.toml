@@ -15,6 +15,7 @@ keywords = ["llm", "evaluation", "llm-as-a-judge", "bias", "ollama", "evals"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+public = ["pyarrow>=14"]
 
 [project.scripts]
 judge-bias = "judge_bias.cli:main"
