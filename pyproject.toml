@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "judge-bias"
+version = "0.1.0"
+description = "Does an LLM judge prefer answers from its own model? Pairwise evals in both answer orders, free local models, effect size with a bootstrap interval."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Ahmed Abied" }]
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["llm", "evaluation", "llm-as-a-judge", "bias", "ollama", "evals"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+judge-bias = "judge_bias.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/judge_bias"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
