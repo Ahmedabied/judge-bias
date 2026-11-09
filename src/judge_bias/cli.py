@@ -20,11 +20,14 @@ def cmd_fetch(a) -> int:
 
 def cmd_run(a) -> int:
     answerers = [Ollama(m, a.host) for m in a.answerers.split(",")]
-    judges = [Ollama(m, a.host) for m in a.judges.split(",")]
+    judges = [Ollama(m, a.host) for m in a.judges.split(",")] if a.judges else []
     questions = questions_subset(load_questions(fetch_prompts(a.prompts)), a.limit)
     out = Path(a.out)
     t0 = time.time()
     result = run(questions, answerers, judges, out, a.max_answer_tokens, log=lambda s: print(s, flush=True))
+    if not judges:
+        print(f"answers saved in {out / 'answers.jsonl'}; run again with --judges for the verdicts")
+        return 0
     meta = {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "questions": f"{len(questions)} MT-Bench first turns (Apache-2.0, FastChat repository)",
@@ -69,7 +72,8 @@ def main(argv=None) -> int:
     f.set_defaults(fn=cmd_fetch)
     r = sub.add_parser("run", help="answers, then verdicts in both orders, then the analysis (resumable)")
     r.add_argument("--answerers", required=True, help="answer models, comma separated (three or more for the noise control)")
-    r.add_argument("--judges", required=True, help="judge models, comma separated; include the answerers")
+    r.add_argument("--judges", help="judge models, comma separated: the answerers plus panel models that answer "
+                                   "nothing. Leave out to collect answers only")
     r.add_argument("--host", default="http://127.0.0.1:11434")
     r.add_argument("--prompts", default="data/mt_bench_questions.jsonl")
     r.add_argument("--limit", type=int)
