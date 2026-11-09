@@ -47,11 +47,11 @@ fair, and two panel judges answer nothing. Alpha and bravo write the weaker answ
 | bravo (coin flip) | 0.531 | 0.319 | +0.212 | +0.034 | -0.032 to +0.098 |
 | charlie (fair) | 0.894 | 0.894 | +0.000 | +0.000 | +0.000 to +0.000 |
 
-The raw number accuses the coin flip. A judge that cannot tell answers apart lands near 50%, and when its own
-model writes the weaker answers, 50% is more than the panel gives it. The adjusted number does not fall for that.
-For GPT-4 the adjustment goes the other way: it calls the humans' majority a little more sharply than the humans'
-own average does (k = 1.10), and its answers are usually the better ones, so part of the raw gap is decisiveness,
-not self-preference.
+The raw number accuses the coin flip. A judge that cannot tell answers apart lands near 50%, and when its own model
+writes the weaker answers, 50% is more than the panel gives it. The adjusted number does not fall for that. For
+GPT-4 the adjustment lowers the number too, for another reason: it calls the humans' majority a little more sharply
+than the humans' own average does (k = 1.10), and its answers are usually the better ones, so part of the raw gap
+is decisiveness, not self-preference.
 
 An earlier version of this page said the opposite (k = 0.86, adjusted +0.152): it fitted k against the humans'
 pick rate as if that rate were exact. Most comparisons have one or two human verdicts, so about a third of the
