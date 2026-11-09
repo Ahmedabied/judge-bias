@@ -1,7 +1,7 @@
 {
   "meta": {
     "data": "lmsys/mt_bench_human_judgments at f7d2896d2cc5 (CC-BY-4.0)",
-    "verdicts": "5755; both turns; ties count half; all human judges pooled as the panel"
+    "verdicts": "5755; each turn compared with the same turn; ties count half; all human judges pooled as the panel"
   },
   "answerers": [
     "alpaca-13b",
@@ -36,19 +36,20 @@
   },
   "self_preference": {
     "gpt-4": {
-      "comparisons": 290,
-      "picks_itself": 0.8526,
-      "reference_picks_it": 0.7323,
-      "raw": 0.1203,
+      "comparisons": 578,
+      "picks_itself": 0.8521,
+      "reference_picks_it": 0.7332,
+      "raw": 0.1188,
       "raw_ci95": [
-        0.0845,
-        0.1553
+        0.0828,
+        0.1545
       ],
-      "follows_panel": 0.863,
-      "adjusted": 0.1521,
+      "follows_panel": 1.1043,
+      "panel_reliability": 0.651,
+      "adjusted": 0.0945,
       "adjusted_ci95": [
-        0.1159,
-        0.1879
+        0.049,
+        0.139
       ]
     }
   }

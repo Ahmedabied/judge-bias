@@ -11,20 +11,22 @@ so did human experts. GPT-4 is one of the six. On the comparisons that include G
 
 | | GPT-4 as judge picks GPT-4 | human experts pick GPT-4 | self-preference | 95% interval |
 |---|---|---|---|---|
-| raw | 0.853 | 0.732 | **+0.120** | +0.085 to +0.155 |
-| adjusted for how GPT-4 follows the humans elsewhere (k = 0.86) | | | **+0.152** | +0.116 to +0.188 |
+| raw | 0.852 | 0.733 | **+0.119** | +0.083 to +0.154 |
+| adjusted for how GPT-4 follows the humans elsewhere (k = 1.10) | | | **+0.095** | +0.049 to +0.139 |
 
-290 comparisons over 80 questions; ties count half; all human judges pooled. It holds when cut other ways:
+578 comparisons over 80 questions, each turn compared with the same turn; ties count half; all human judges pooled.
+Cut other ways (`judge-bias public --turn 1`, `--turn 2`, `--experts-only`):
 
 | slice | raw | adjusted |
 |---|---|---|
-| first turns only | +0.100 (+0.045 to +0.151) | +0.164 (+0.114 to +0.213) |
-| second turns only | +0.138 (+0.090 to +0.186) | +0.205 (+0.159 to +0.253) |
-| expert judges only, without the paper's authors | +0.118 (+0.084 to +0.154) | +0.163 (+0.129 to +0.198) |
+| first turns only | +0.100 (+0.045 to +0.151) | +0.067 (0.000 to +0.130) |
+| second turns only | +0.138 (+0.090 to +0.186) | +0.122 (+0.064 to +0.180) |
+| expert judges only, without the paper's authors | +0.117 (+0.082 to +0.153) | +0.091 (+0.045 to +0.138) |
 
-So when GPT-4 grades a comparison that includes its own answer, it sides with itself about 12 to 15 points more
-often than human experts do. The MT-Bench paper reported a similar raw gap; this adds the human yardstick, the
-interval and the noise control. Reproduce it in a few seconds:
+So when GPT-4 grades a comparison that includes its own answer, it sides with itself about 12 points more often
+than human experts do, and about 9 or 10 points more than a judge that follows the humans as closely as GPT-4 does
+elsewhere would. On first turns alone the adjusted interval reaches zero. The MT-Bench paper reported a similar raw
+gap; this adds the human yardstick, the interval and the noise control. Reproduce it in a few seconds:
 
 ```sh
 git clone https://github.com/Ahmedabied/judge-bias && cd judge-bias
@@ -47,8 +49,15 @@ fair, and two panel judges answer nothing. Alpha and bravo write the weaker answ
 
 The raw number accuses the coin flip. A judge that cannot tell answers apart lands near 50%, and when its own
 model writes the weaker answers, 50% is more than the panel gives it. The adjusted number does not fall for that.
-For GPT-4 the adjustment goes the other way: it follows the humans a little less sharply than they judge
-(k = 0.86), so its lean toward itself is larger than the raw gap shows.
+For GPT-4 the adjustment goes the other way: it calls the humans' majority a little more sharply than the humans'
+own average does (k = 1.10), and its answers are usually the better ones, so part of the raw gap is decisiveness,
+not self-preference.
+
+An earlier version of this page said the opposite (k = 0.86, adjusted +0.152): it fitted k against the humans'
+pick rate as if that rate were exact. Most comparisons have one or two human verdicts, so about a third of the
+spread in that rate is verdict noise (reliability 0.65), and noise in the yardstick flattens k toward 0. It is now
+measured and taken out (step 5 below); on simulated panels with no self-preference the old fit reported +0.06 with
+an interval that excluded zero, the corrected one -0.01.
 
 ## Run it on your own models
 
@@ -79,7 +88,9 @@ seed. `--host` points at another local Ollama; remote hosts are refused.
 5. **adjusted**: on the pairs where X has no stake (two other models), fit how closely X follows the panel,
    `p - 0.5 = k (r - 0.5)`. k is 1 for a judge that agrees with the panel and near 0 for a coin flip. Without
    self-preference X should pick itself at `0.5 + k (r - 0.5)`; adjusted is how far above that it lands, averaged.
-   It needs three or more answer models and at least one panel judge.
+   The panel's rate r is an estimate too, so the fit takes its noise out: the variance between verdicts on the same
+   pair (pooled over pairs with two or more) is subtracted from the spread of r before dividing. It needs three or
+   more answer models and at least one panel judge.
 6. Intervals: questions resampled with replacement 2,000 times, everything recomputed each time, 95% percentile.
 
 Replies are parsed strictly. The letter has to lead the reply ("A", "B.", "Answer: B", "The better answer is A").
@@ -90,7 +101,9 @@ Replies are parsed strictly. The letter has to lead the reply ("A", "B.", "Answe
 - **Self-preference or style preference?** A judge may favour answers that sound like its own family's training,
   not its own answers as such. This measures the tilt either way; it cannot say why.
 - **The adjustment is a model.** It assumes a judge relates to the panel the same way on its own pairs as on
-  others' pairs. A panel that shares a bias with one model hides that bias.
+  others' pairs. A panel that shares a bias with one model hides that bias. The noise correction pools one verdict
+  variance over all pairs; where some pairs are much noisier than others it is approximate (on simulated panels it
+  leaned slightly low, -0.01 on average, and its interval held the true value 36 times in 40).
 - **One judge model, 2023 vintage.** The published number is GPT-4 (as of the MT-Bench paper) on 80 questions.
   Newer judges need their own run; the local path above is for that.
 - **Humans are a panel, not the truth.** Experts disagree with each other too; they are the yardstick because they
@@ -103,12 +116,12 @@ Replies are parsed strictly. The letter has to lead the reply ("A", "B.", "Answe
 
 ```sh
 pip install -e '.[test,public]'
-pytest -q              # 32 tests, about 3 s
+pytest -q              # 33 tests, about 3 s
 ```
 
 Tests use scripted models: a self-biased judge is found, a coin-flip judge is not blamed, a first-slot judge
-cancels out, unreadable replies are counted, ties count half, a stopped run resumes without calling a model again,
-and downloads are refused if a hash changes. CI also reproduces the published number.
+cancels out, unreadable replies are counted, ties count half, a fair judge measured against a noisy human panel is
+not blamed, a stopped run resumes without calling a model again, and downloads are refused if a hash changes. CI also reproduces the published number.
 
 Built with AI pair programming.
 

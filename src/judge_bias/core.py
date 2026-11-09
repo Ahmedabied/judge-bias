@@ -137,16 +137,17 @@ def run(questions: list[Question], answerers: list[Model], judges: list[Model], 
     return analyse(list(verdicts.rows.values()), names, [j.name for j in judges])
 
 
-def _rates(rows: list[dict]) -> dict[tuple[str, str, str, str], float]:
-    """(judge, question, m, n) -> share of the judge's readable verdicts on that pair that picked m.
-    A tie (in imported judgments) counts half for each side."""
-    acc: dict[tuple[str, str, str, str], list[float]] = {}
+def _cells(rows: list[dict]) -> dict[tuple, list[float]]:
+    """(judge, question, turn, m, n) -> the judge's readable verdicts on that pair: 1 picked m, 0 picked n, and a tie
+    (in imported judgments) counts half for each side. Turn is None for local runs (first turns only); imported
+    judgments compare each turn with the same turn."""
+    acc: dict[tuple, list[float]] = {}
     for r in rows:
         w = r["winner"]
         if w is not None:
             m, n = r["pair"]
-            acc.setdefault((r["judge"], r["qid"], m, n), []).append(0.5 if w == "tie" else 1.0 if w == m else 0.0)
-    return {k: sum(v) / len(v) for k, v in acc.items()}
+            acc.setdefault((r["judge"], r["qid"], r.get("turn"), m, n), []).append(0.5 if w == "tie" else 1.0 if w == m else 0.0)
+    return acc
 
 
 def _pct(vals: list[float]) -> list[float] | None:
@@ -170,10 +171,23 @@ def analyse(rows: list[dict], answerers: list[str], judges: list[str], rounds: i
     self-preference X should pick itself at 0.5 + k (r - 0.5) on its own pairs, so
     adjusted: mean(own pick rate - 0.5 - k (r - 0.5)). It needs three or more answer models and a panel.
 
+    The panel's pick rate on a pair is itself an estimate (often one human verdict), and noise in it flattens the
+    fitted k toward 0, which would read a judge that simply knows its answer is better as self-preferring. So the
+    noise is measured, as the spread between verdicts on the same pair (pooled over pairs with two or more), and
+    taken out of the fit: k = sum (p - 0.5)(r - 0.5) / (sum (r - 0.5)^2 - summed noise variance of r).
+
     Intervals: questions resampled with replacement, everything recomputed each time, 95% percentile.
     """
-    rate = _rates(rows)
+    cells = _cells(rows)
+    rate = {key: statistics.fmean(v) for key, v in cells.items()}
     panel = [j for j in judges if j not in answerers]
+    ss = df = 0.0
+    for (j, *_), v in cells.items():
+        if j in panel and len(v) > 1:
+            mu = statistics.fmean(v)
+            ss += sum((x - mu) ** 2 for x in v)
+            df += len(v) - 1
+    noise = ss / df if df else 0.0  # the variance of one panel verdict around its pair's mean
     result: dict = {"answerers": answerers, "judges": judges, "panel": panel,
                     "judges_detail": {}, "self_preference": {}}
     for j in judges:
@@ -193,39 +207,51 @@ def analyse(rows: list[dict], answerers: list[str], judges: list[str], rounds: i
             "consistent_rate": round(sum(1 for w in two if w[0] == w[1]) / len(two), 4) if two else None,
         }
 
-    def reference(x: str, q: str, m: str, n: str) -> float | None:
-        refs = panel or [o for o in judges if o not in (x, m, n)]
-        vals = [rate[(o, q, m, n)] for o in refs if (o, q, m, n) in rate]
-        return statistics.fmean(vals) if vals else None
+    def reference(x: str, key: tuple) -> tuple[float, float] | None:
+        """The panel's pick rate for m on (question, turn, m, n), and the noise variance of that rate."""
+        q, t, m, n = key
+        refs = [o for o in (panel or [o for o in judges if o not in (x, m, n)]) if (o, *key) in rate]
+        if not refs:
+            return None
+        var = noise * sum(1 / len(cells[(o, *key)]) for o in refs) / len(refs) ** 2 if panel else 0.0
+        return statistics.fmean(rate[(o, *key)] for o in refs), var
 
-    qids = sorted({r["qid"] for r in rows})
+    items = sorted({key[1:] for key in cells}, key=lambda k: (k[0], k[1] or 0, k[2], k[3]))
     for x in answerers:
         if x not in judges:
             continue
-        own: dict[str, list[tuple[float, float]]] = {}      # q -> (X's pick rate for X, reference for X)
-        neutral: dict[str, list[tuple[float, float]]] = {}  # q -> (X's pick rate for m, reference for m)
-        for q in qids:
-            for m, n in pairs(answerers):
-                p, r = rate.get((x, q, m, n)), reference(x, q, m, n)
-                if p is None or r is None:
-                    continue
-                if x == m:
-                    own.setdefault(q, []).append((p, r))
-                elif x == n:
-                    own.setdefault(q, []).append((1 - p, 1 - r))
-                elif panel:
-                    neutral.setdefault(q, []).append((p, r))
+        own: dict[str, list[tuple[float, float]]] = {}             # q -> (X's pick rate for X, reference for X)
+        neutral: dict[str, list[tuple[float, float, float]]] = {}  # q -> (X's rate for m, reference for m, its noise)
+        for key in items:
+            q, _, m, n = key
+            p, ref = rate.get((x, *key)), reference(x, key)
+            if p is None or ref is None:
+                continue
+            r, var = ref
+            if x == m:
+                own.setdefault(q, []).append((p, r))
+            elif x == n:
+                own.setdefault(q, []).append((1 - p, 1 - r))
+            elif panel:
+                neutral.setdefault(q, []).append((p, r, var))
+
+        def fit(sample: list[str]) -> tuple[float | None, float | None]:
+            """k through the middle with the panel's noise taken out, and the share of the spread that is real."""
+            nt = [pt for q in sample for pt in neutral.get(q, [])]
+            sxx = sum((r - 0.5) ** 2 for _, r, _ in nt)
+            spread = sxx - sum(v for _, _, v in nt)
+            if sxx <= 0 or spread <= 0:
+                return None, None
+            return sum((p - 0.5) * (r - 0.5) for p, r, _ in nt) / spread, spread / sxx
 
         def stats(sample: list[str]) -> tuple[float | None, float | None]:
             o = [pt for q in sample for pt in own.get(q, [])]
             if not o:
                 return None, None
             raw = statistics.fmean(a - b for a, b in o)
-            nt = [pt for q in sample for pt in neutral.get(q, [])]
-            sxx = sum((r - 0.5) ** 2 for _, r in nt)
-            if sxx <= 0:
+            k, _ = fit(sample)
+            if k is None:
                 return raw, None
-            k = sum((p - 0.5) * (r - 0.5) for p, r in nt) / sxx
             return raw, statistics.fmean(a - 0.5 - k * (b - 0.5) for a, b in o)
 
         oq = sorted(own)
@@ -240,16 +266,16 @@ def analyse(rows: list[dict], answerers: list[str], judges: list[str], rounds: i
             if adj is not None:
                 boot_adj.append(adj)
         pts = [pt for q in oq for pt in own[q]]
-        nt = [pt for q in oq for pt in neutral.get(q, [])]
-        sxx = sum((r - 0.5) ** 2 for _, r in nt)
         raw, adj = stats(oq)
+        k, reliability = fit(oq)
         result["self_preference"][x] = {
             "comparisons": len(pts),
             "picks_itself": round(statistics.fmean(a for a, _ in pts), 4),
             "reference_picks_it": round(statistics.fmean(b for _, b in pts), 4),
             "raw": round(raw, 4),
             "raw_ci95": _pct(boot_raw),
-            "follows_panel": round(sum((p - 0.5) * (r - 0.5) for p, r in nt) / sxx, 4) if sxx > 0 else None,
+            "follows_panel": round(k, 4) if k is not None else None,
+            "panel_reliability": round(reliability, 4) if reliability is not None else None,
             "adjusted": round(adj, 4) if adj is not None else None,
             "adjusted_ci95": _pct(boot_adj) if adj is not None else None,
         }

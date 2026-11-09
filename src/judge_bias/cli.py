@@ -59,9 +59,14 @@ def cmd_public(a) -> int:
     from . import public
 
     rows, models, judges = public.load(a.data)
+    if a.turn:
+        rows = [r for r in rows if r["turn"] == a.turn]
+    if a.experts_only:  # the human judges who are not authors of the MT-Bench paper
+        rows = [r for r in rows if r["judge"] != "humans" or r["source"].startswith("expert_")]
     result = analyse(rows, models, judges)
     meta = {"data": f"{public.DATASET} at {public.REVISION[:12]} (CC-BY-4.0)",
-            "verdicts": f"{len(rows)}; both turns; ties count half; all human judges pooled as the panel"}
+            "verdicts": f"{len(rows)}; {f'turn {a.turn} only' if a.turn else 'each turn compared with the same turn'}; "
+                        f"ties count half; {'expert' if a.experts_only else 'all'} human judges pooled as the panel"}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "results.json").write_text(json.dumps({"meta": meta, **result}, indent=2), encoding="utf-8")
@@ -101,6 +106,8 @@ def main(argv=None) -> int:
     pub = sub.add_parser("public", help="analyse the published MT-Bench human judgments (GPT-4 judge vs human experts)")
     pub.add_argument("--data", default="data/mt_bench_human")
     pub.add_argument("--out", default="results/mt-bench-human")
+    pub.add_argument("--turn", type=int, choices=[1, 2], help="only this turn")
+    pub.add_argument("--experts-only", action="store_true", help="leave out the human judges who wrote the MT-Bench paper")
     pub.set_defaults(fn=cmd_public)
     rep = sub.add_parser("report", help="re-analyse saved verdicts")
     rep.add_argument("out")

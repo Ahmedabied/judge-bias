@@ -1,13 +1,13 @@
 # Results
 
 - data: lmsys/mt_bench_human_judgments at f7d2896d2cc5 (CC-BY-4.0)
-- verdicts: 5755; both turns; ties count half; all human judges pooled as the panel
+- verdicts: 5755; each turn compared with the same turn; ties count half; all human judges pooled as the panel
 
 ## Self-preference
 
 | model | comparisons | picks itself | panel picks it | raw | 95% interval | follows the panel (k) | adjusted | 95% interval |
 |---|---|---|---|---|---|---|---|---|
-| gpt-4 | 290 | 0.853 | 0.732 | +0.120 | +0.085 to +0.155 | 0.863 | +0.152 | +0.116 to +0.188 |
+| gpt-4 | 578 | 0.852 | 0.733 | +0.119 | +0.083 to +0.154 | 1.104 | +0.095 | +0.049 to +0.139 |
 
 ## Judges
 
