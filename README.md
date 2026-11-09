@@ -53,12 +53,11 @@ GPT-4 the adjustment lowers the number too, for another reason: it calls the hum
 than the humans' own average does (k = 1.10), and its answers are usually the better ones, so part of the raw gap
 is decisiveness, not self-preference.
 
-An earlier version of this page said the opposite (k = 0.86, adjusted +0.152): it fitted k against the humans'
-pick rate as if that rate were exact. Most comparisons have one or two human verdicts, so about a third of the
-spread in that rate is verdict noise (panel reliability 0.65, the last column `judge-bias public` prints), and
-noise in the yardstick flattens k toward 0. It is now
-measured and taken out (step 5 below); on simulated panels with no self-preference the old fit reported +0.06 with
-an interval that excluded zero, the corrected one -0.01.
+An earlier version of this page said the opposite (k = 0.86, adjusted +0.152): it fitted k against the humans' pick
+rate as if that rate were exact. Most comparisons have one or two human verdicts, so about a third of the spread in
+that rate is verdict noise (panel reliability 0.65, the last column `judge-bias public` prints), and noise in the
+yardstick flattens k toward 0. It is now measured and taken out (step 5 below); on simulated panels with no self-
+preference the old fit reported +0.06 with an interval that excluded zero, the corrected one -0.01.
 
 ## Run it on your own models
 
