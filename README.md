@@ -112,6 +112,14 @@ Replies are parsed strictly. The letter has to lead the reply ("A", "B.", "Answe
   scores out of 10 can change the result.
 - **Answers are capped** at 400 tokens by default, the same cap for every model.
 
+## Related
+
+- [relevance-gate](https://github.com/Ahmedabied/relevance-gate) asks the same question about search: did a change
+  make results worse, or is the difference noise? It fails a pull request only when a randomization test says the
+  drop is real.
+- [judge-ui](https://github.com/Ahmedabied/judge-ui) is for collecting human judgments quickly, the kind of panel a
+  model judge should be checked against.
+
 ## Development
 
 ```sh
